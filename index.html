@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a56db">
+<title>CRM Garage</title>
+<style>
+:root{
+  --bleu:#1a56db; --bleu-f:#1e429f; --fond:#f3f4f6; --carte:#ffffff;
+  --texte:#111827; --gris:#6b7280; --bord:#e5e7eb;
+  --vert:#059669; --rouge:#dc2626; --orange:#d97706; --jaune:#f59e0b;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--fond);color:var(--texte);min-height:100vh}
+.hidden{display:none!important}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:16px;width:100%;padding:11px 12px;border:1px solid var(--bord);border-radius:10px;background:#fff;color:var(--texte)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--bleu);border-color:transparent}
+label{display:block;font-size:13px;font-weight:600;color:var(--gris);margin:14px 0 5px}
+.btn{display:block;width:100%;padding:13px;border:none;border-radius:10px;background:var(--bleu);color:#fff;font-size:16px;font-weight:600}
+.btn:active{background:var(--bleu-f)}
+.btn-sec{background:#fff;color:var(--bleu);border:1.5px solid var(--bleu)}
+.btn-danger{background:#fff;color:var(--rouge);border:1.5px solid var(--rouge)}
+.carte{background:var(--carte);border-radius:14px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:12px}
+
+/* ---- écrans plein page ---- */
+.plein{max-width:440px;margin:0 auto;padding:40px 20px;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+.logo{text-align:center;margin-bottom:28px}
+.logo h1{font-size:26px;color:var(--bleu)}
+.logo p{color:var(--gris);font-size:14px;margin-top:6px}
+
+/* ---- app ---- */
+header{background:var(--bleu);color:#fff;padding:14px 16px;padding-top:calc(14px + env(safe-area-inset-top));display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+header h1{font-size:18px}
+header .role{font-size:12px;opacity:.85}
+#btn-logout{background:rgba(255,255,255,.18);border:none;color:#fff;padding:7px 12px;border-radius:8px;font-size:13px}
+main{max-width:640px;margin:0 auto;padding:16px 14px 90px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--bord);display:flex;padding-bottom:env(safe-area-inset-bottom);z-index:10}
+nav button{flex:1;background:none;border:none;padding:9px 2px 7px;font-size:11px;color:var(--gris);display:flex;flex-direction:column;align-items:center;gap:3px}
+nav button.actif{color:var(--bleu);font-weight:700}
+nav button .ico{font-size:21px;line-height:1}
+
+/* ---- composants ---- */
+.fab{position:fixed;right:18px;bottom:calc(72px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;background:var(--bleu);color:#fff;border:none;font-size:30px;box-shadow:0 4px 12px rgba(26,86,219,.4);z-index:11}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 14px;border-radius:999px;border:1.5px solid var(--bord);background:#fff;font-size:14px;color:var(--texte)}
+.chip.actif{background:var(--bleu);border-color:var(--bleu);color:#fff;font-weight:600}
+.etoiles{display:flex;gap:6px}
+.etoiles button{font-size:32px;background:none;bo
