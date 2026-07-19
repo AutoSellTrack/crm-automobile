@@ -49,4 +49,716 @@ nav button .ico{font-size:21px;line-height:1}
 .chip{padding:8px 14px;border-radius:999px;border:1.5px solid var(--bord);background:#fff;font-size:14px;color:var(--texte)}
 .chip.actif{background:var(--bleu);border-color:var(--bleu);color:#fff;font-weight:600}
 .etoiles{display:flex;gap:6px}
-.etoiles button{font-size:32px;background:none;bo
+.etoiles button{font-size:32px;background:none;border:none;color:#d1d5db;padding:0 2px}
+.etoiles button.actif{color:var(--jaune)}
+.badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600}
+.b-vendu{background:#d1fae5;color:var(--vert)}
+.b-perdu{background:#fee2e2;color:var(--rouge)}
+.b-en_cours{background:#fef3c7;color:var(--orange)}
+.b-stock{background:#dbeafe;color:var(--bleu)}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 2px;border-bottom:1px solid var(--bord)}
+.item:last-child{border-bottom:none}
+.item .t{font-weight:600;font-size:15px}
+.item .s{font-size:13px;color:var(--gris);margin-top:2px}
+.item .droite{text-align:right;flex-shrink:0}
+.mini-etoiles{color:var(--jaune);font-size:13px;letter-spacing:1px}
+.vide{text-align:center;color:var(--gris);padding:30px 10px;font-size:14px}
+
+/* ---- modal ---- */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.modal-int{background:#fff;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom))}
+.modal-int h2{font-size:18px;margin-bottom:4px}
+.modal-actions{display:flex;gap:10px;margin-top:22px}
+.select-plus{display:flex;gap:8px}
+.select-plus select{flex:1}
+.select-plus button{flex-shrink:0;width:46px;border-radius:10px;border:1.5px solid var(--bleu);background:#fff;color:var(--bleu);font-size:22px}
+
+/* ---- stats ---- */
+.kpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.kpi{background:#fff;border-radius:14px;padding:14px 10px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.kpi .v{font-size:24px;font-weight:800;color:var(--bleu)}
+.kpi .l{font-size:11px;color:var(--gris);margin-top:3px}
+.barre-ligne{margin:9px 0}
+.barre-ligne .lab{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px}
+.barre{height:9px;background:var(--bord);border-radius:99px;overflow:hidden}
+.barre>div{height:100%;background:var(--bleu);border-radius:99px}
+h3.section{font-size:15px;margin:18px 0 8px;color:var(--texte)}
+.recherche{margin-bottom:12px}
+.filtres{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px}
+.filtres .chip{white-space:nowrap;flex-shrink:0}
+.note-info{font-size:13px;color:var(--gris);background:#eef2ff;border-radius:10px;padding:10px 12px;margin-top:12px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<!-- ================= ÉCRAN CONFIG ================= -->
+<div id="ecran-config" class="plein hidden">
+  <div class="logo"><h1>🚗 CRM Garage</h1><p>Suivi des contacts clients &amp; ventes</p></div>
+  <div class="carte">
+    <p style="font-size:14px;line-height:1.5;margin-bottom:14px">Choisissez le mode de fonctionnement :</p>
+    <button class="btn" onclick="App.choisirMode('demo')">Essayer en mode démo</button>
+    <p style="font-size:12px;color:var(--gris);margin:8px 0 18px;text-align:center">Données d'exemple, stockées sur cet appareil uniquement</p>
+    <button class="btn btn-sec" onclick="App.afficherConfigSupabase()">Connecter la base partagée (Supabase)</button>
+    <p style="font-size:12px;color:var(--gris);margin-top:8px;text-align:center">Accès multi-appareils pour toute l'équipe</p>
+  </div>
+  <div id="config-supabase" class="carte hidden">
+    <label>URL du projet Supabase</label>
+    <input id="sb-url" placeholder="https://xxxx.supabase.co">
+    <label>Clé « anon public »</label>
+    <input id="sb-key" placeholder="eyJhbGciOi...">
+    <div class="modal-actions"><button class="btn" onclick="App.enregistrerConfigSupabase()">Se connecter à la base</button></div>
+    <p class="note-info">Ces informations se trouvent dans votre projet Supabase → Settings → API. Voir le guide d'installation fourni.</p>
+  </div>
+</div>
+
+<!-- ================= ÉCRAN CONNEXION ================= -->
+<div id="ecran-auth" class="plein hidden">
+  <div class="logo"><h1>🚗 CRM Garage</h1><p id="auth-sous-titre">Connexion</p></div>
+
+  <!-- mode démo : choix d'utilisateur -->
+  <div id="auth-demo" class="hidden">
+    <div class="carte">
+      <p style="font-size:14px;color:var(--gris);margin-bottom:12px">Mode démo — choisissez un compte :</p>
+      <div id="liste-comptes-demo"></div>
+    </div>
+    <button class="btn btn-sec" onclick="App.quitterMode()">← Changer de mode</button>
+  </div>
+
+  <!-- mode supabase : email / mdp -->
+  <div id="auth-supabase" class="hidden">
+    <div class="carte">
+      <div id="form-connexion">
+        <label>Email</label><input id="co-email" type="email" autocomplete="email">
+        <label>Mot de passe</label><input id="co-mdp" type="password" autocomplete="current-password">
+        <div class="modal-actions"><button class="btn" onclick="App.connexion()">Se connecter</button></div>
+        <p style="text-align:center;margin-top:14px;font-size:14px">Pas de compte ? <a href="#" onclick="App.basculerInscription(true);return false" style="color:var(--bleu)">Créer un compte</a></p>
+      </div>
+      <div id="form-inscription" class="hidden">
+        <label>Nom</label><input id="ins-nom" placeholder="Prénom Nom">
+        <label>Email</label><input id="ins-email" type="email">
+        <label>Mot de passe (6 caractères min.)</label><input id="ins-mdp" type="password">
+        <label>Rôle</label>
+        <select id="ins-role"><option value="vendeur">Vendeur</option><option value="employeur">Employeur / Gérant</option></select>
+        <div class="modal-actions"><button class="btn" onclick="App.inscription()">Créer le compte</button></div>
+        <p style="text-align:center;margin-top:14px;font-size:14px"><a href="#" onclick="App.basculerInscription(false);return false" style="color:var(--bleu)">← Retour connexion</a></p>
+      </div>
+    </div>
+    <button class="btn btn-sec" onclick="App.quitterMode()">← Changer de mode</button>
+  </div>
+</div>
+
+<!-- ================= APPLICATION ================= -->
+<div id="app" class="hidden">
+  <header>
+    <div><h1 id="titre-vue">Accueil</h1><div class="role" id="entete-user"></div></div>
+    <button id="btn-logout" onclick="App.deconnexion()">Quitter</button>
+  </header>
+  <main id="contenu"></main>
+  <button class="fab" id="fab" onclick="App.ouvrirFormInteraction()">＋</button>
+  <nav id="navbar"></nav>
+</div>
+
+<!-- ================= MODALS ================= -->
+<div id="modal-interaction" class="modal hidden" onclick="if(event.target===this)App.fermerModal('modal-interaction')">
+  <div class="modal-int">
+    <h2 id="mi-titre">Nouvelle interaction</h2>
+    <label>Canal de contact</label>
+    <div class="chips" id="mi-canaux"></div>
+    <label>Client</label>
+    <div class="select-plus"><select id="mi-client"></select><button onclick="App.ouvrirFormClient(true)" title="Nouveau client">＋</button></div>
+    <label>Véhicule concerné</label>
+    <div class="select-plus"><select id="mi-vehicule"></select><button onclick="App.ouvrirFormVehicule(true)" title="Nouveau véhicule">＋</button></div>
+    <label>Intérêt du client</label>
+    <div class="etoiles" id="mi-etoiles"></div>
+    <label>Statut</label>
+    <div class="chips" id="mi-statuts"></div>
+    <label>Date et heure de l'échange</label>
+    <input type="datetime-local" id="mi-date">
+    <label>Commentaire (facultatif)</label>
+    <textarea id="mi-commentaire" rows="3" placeholder="Résumé de l'échange, demande du client…"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-sec" onclick="App.fermerModal('modal-interaction')">Annuler</button>
+      <button class="btn" onclick="App.sauverInteraction()">Enregistrer</button>
+    </div>
+    <button class="btn btn-danger hidden" id="mi-supprimer" style="margin-top:10px" onclick="App.supprimerInteraction()">Supprimer</button>
+  </div>
+</div>
+
+<div id="modal-client" class="modal hidden" onclick="if(event.target===this)App.fermerModal('modal-client')">
+  <div class="modal-int">
+    <h2 id="mc-titre">Nouveau client</h2>
+    <label>Nom *</label><input id="mc-nom" placeholder="Prénom Nom">
+    <label>Téléphone</label><input id="mc-tel" type="tel" placeholder="06 12 34 56 78">
+    <label>Email</label><input id="mc-email" type="email">
+    <label>Notes</label><textarea id="mc-notes" rows="2"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-sec" onclick="App.fermerModal('modal-client')">Annuler</button>
+      <button class="btn" onclick="App.sauverClient()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-vehicule" class="modal hidden" onclick="if(event.target===this)App.fermerModal('modal-vehicule')">
+  <div class="modal-int">
+    <h2 id="mv-titre">Nouveau véhicule</h2>
+    <label>Marque *</label><input id="mv-marque" placeholder="Renault">
+    <label>Modèle *</label><input id="mv-modele" placeholder="Clio V 1.0 TCe">
+    <label>Année</label><input id="mv-annee" type="number" placeholder="2021">
+    <label>Prix affiché (€)</label><input id="mv-prix" type="number" placeholder="14990">
+    <label>Immatriculation</label><input id="mv-immat" placeholder="AB-123-CD">
+    <label>Statut</label>
+    <select id="mv-statut"><option value="stock">En stock</option><option value="vendu">Vendu</option></select>
+    <div class="modal-actions">
+      <button class="btn btn-sec" onclick="App.fermerModal('modal-vehicule')">Annuler</button>
+      <button class="btn" onclick="App.sauverVehicule()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   CONSTANTES
+============================================================ */
+const CANAUX = ["Téléphone","Leboncoin","Messagerie","Parc / physique","Email","Autre"];
+const STATUTS = {en_cours:"En cours", vendu:"Vendu", perdu:"Perdu"};
+const CLE_CONFIG = "crmGarageConfig";
+const CLE_DEMO = "crmGarageDemo";
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+
+/* ============================================================
+   STORE DÉMO (localStorage)
+============================================================ */
+const DemoStore = {
+  data:null, userId:null,
+  init(){
+    const brut = localStorage.getItem(CLE_DEMO);
+    if(brut){ this.data = JSON.parse(brut); return; }
+    // jeu de données d'exemple
+    const j = uid(), s = uid(), p = uid();
+    const v1=uid(),v2=uid(),v3=uid(),v4=uid(),v5=uid();
+    const c1=uid(),c2=uid(),c3=uid(),c4=uid(),c5=uid(),c6=uid();
+    const ilYA = jours => new Date(Date.now()-jours*864e5).toISOString();
+    this.data = {
+      profiles:[
+        {id:p, nom:"Patron (Gérant)", role:"employeur"},
+        {id:j, nom:"Julien", role:"vendeur"},
+        {id:s, nom:"Sarah", role:"vendeur"}
+      ],
+      vehicules:[
+        {id:v1, marque:"Renault", modele:"Clio V 1.0 TCe", annee:2021, prix:14990, immat:"AB-123-CD", statut:"stock"},
+        {id:v2, marque:"Peugeot", modele:"208 PureTech", annee:2020, prix:13490, immat:"CD-456-EF", statut:"stock"},
+        {id:v3, marque:"Citroën", modele:"C3 Aircross", annee:2019, prix:12990, immat:"EF-789-GH", statut:"vendu"},
+        {id:v4, marque:"Volkswagen", modele:"Golf 7 TDI", annee:2018, prix:15990, immat:"GH-012-IJ", statut:"stock"},
+        {id:v5, marque:"Dacia", modele:"Duster 4x2", annee:2022, prix:16490, immat:"IJ-345-KL", statut:"stock"}
+      ],
+      clients:[
+        {id:c1, nom:"Marc Dupont", telephone:"06 11 22 33 44", email:"", notes:""},
+        {id:c2, nom:"Julie Martin", telephone:"06 55 66 77 88", email:"julie.m@mail.fr", notes:"Cherche petite citadine"},
+        {id:c3, nom:"Ahmed Benali", telephone:"07 12 34 56 78", email:"", notes:""},
+        {id:c4, nom:"Sophie Leroy", telephone:"06 98 76 54 32", email:"", notes:"Reprise possible de son ancienne voiture"},
+        {id:c5, nom:"Pierre Garnier", telephone:"", email:"p.garnier@mail.fr", notes:""},
+        {id:c6, nom:"Nathalie Petit", telephone:"06 44 55 66 77", email:"", notes:""}
+      ],
+      interactions:[
+        {id:uid(), vendeur_id:j, client_id:c1, vehicule_id:v1, canal:"Leboncoin", interet:3, statut:"en_cours", commentaire:"Demande de photos supplémentaires", date_interaction:ilYA(6)},
+        {id:uid(), vendeur_id:j, client_id:c1, vehicule_id:v1, canal:"Téléphone", interet:4, statut:"en_cours", commentaire:"RDV essai samedi", date_interaction:ilYA(3)},
+        {id:uid(), vendeur_id:j, client_id:c3, vehicule_id:v3, canal:"Parc / physique", interet:5, statut:"vendu", commentaire:"Vente conclue, livraison la semaine prochaine", date_interaction:ilYA(9)},
+        {id:uid(), vendeur_id:j, client_id:c5, vehicule_id:v4, canal:"Email", interet:2, statut:"perdu", commentaire:"A trouvé moins cher ailleurs", date_interaction:ilYA(12)},
+        {id:uid(), vendeur_id:s, client_id:c2, vehicule_id:v2, canal:"Messagerie", interet:4, statut:"en_cours", commentaire:"Intéressée, souhaite un essai", date_interaction:ilYA(4)},
+        {id:uid(), vendeur_id:s, client_id:c4, vehicule_id:v5, canal:"Téléphone", interet:3, statut:"en_cours", commentaire:"Question sur la reprise", date_interaction:ilYA(2)},
+        {id:uid(), vendeur_id:s, client_id:c6, vehicule_id:v2, canal:"Parc / physique", interet:1, statut:"perdu", commentaire:"Simple curiosité", date_interaction:ilYA(8)},
+        {id:uid(), vendeur_id:s, client_id:c2, vehicule_id:v2, canal:"Téléphone", interet:5, statut:"en_cours", commentaire:"Essai fait, réfléchit au financement", date_interaction:ilYA(1)}
+      ]
+    };
+    this.sauver();
+  },
+  sauver(){ localStorage.setItem(CLE_DEMO, JSON.stringify(this.data)); },
+  utilisateur(){ return this.data.profiles.find(p=>p.id===this.userId) || null; },
+  async chargerTout(){ return this.data; },
+  async creer(table, obj){ obj.id = uid(); this.data[table].push(obj); this.sauver(); return obj; },
+  async modifier(table, id, maj){ const o=this.data[table].find(x=>x.id===id); Object.assign(o, maj); this.sauver(); return o; },
+  async supprimer(table, id){ this.data[table]=this.data[table].filter(x=>x.id!==id); this.sauver(); }
+};
+
+/* ============================================================
+   STORE SUPABASE
+============================================================ */
+const SupaStore = {
+  client:null, profil:null,
+  async init(cfg){
+    if(!window.supabase){
+      await new Promise((res,rej)=>{
+        const s=document.createElement("script");
+        s.src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+        s.onload=res; s.onerror=()=>rej(new Error("Impossible de charger Supabase. Vérifiez la connexion internet."));
+        document.head.appendChild(s);
+      });
+    }
+    this.client = window.supabase.createClient(cfg.url, cfg.key);
+  },
+  async sessionActive(){
+    const {data} = await this.client.auth.getSession();
+    if(!data.session) return false;
+    return await this.chargerProfil(data.session.user.id);
+  },
+  async chargerProfil(userId){
+    const {data,error} = await this.client.from("profiles").select("*").eq("id",userId).single();
+    if(error||!data) return false;
+    this.profil = data; return true;
+  },
+  async connexion(email,mdp){
+    const {data,error} = await this.client.auth.signInWithPassword({email,password:mdp});
+    if(error) throw new Error("Connexion refusée : "+error.message);
+    await this.chargerProfil(data.user.id);
+  },
+  async inscription(nom,email,mdp,role){
+    const {data,error} = await this.client.auth.signUp({email,password:mdp,options:{data:{nom,role}}});
+    if(error) throw new Error("Inscription refusée : "+error.message);
+    if(data.user){ await new Promise(r=>setTimeout(r,800)); await this.chargerProfil(data.user.id); }
+  },
+  async deconnexion(){ await this.client.auth.signOut(); this.profil=null; },
+  utilisateur(){ return this.profil; },
+  async chargerTout(){
+    const [p,c,v,i] = await Promise.all([
+      this.client.from("profiles").select("*"),
+      this.client.from("clients").select("*"),
+      this.client.from("vehicules").select("*"),
+      this.client.from("interactions").select("*").order("date_interaction",{ascending:false})
+    ]);
+    const err = p.error||c.error||v.error||i.error;
+    if(err) throw new Error("Lecture impossible : "+err.message+" (les tables sont-elles créées ? Voir le guide.)");
+    return {profiles:p.data, clients:c.data, vehicules:v.data, interactions:i.data};
+  },
+  async creer(table,obj){ const {data,error}=await this.client.from(table).insert(obj).select().single(); if(error) throw new Error(error.message); return data; },
+  async modifier(table,id,maj){ const {data,error}=await this.client.from(table).update(maj).eq("id",id).select().single(); if(error) throw new Error(error.message); return data; },
+  async supprimer(table,id){ const {error}=await this.client.from(table).delete().eq("id",id); if(error) throw new Error(error.message); }
+};
+
+/* ============================================================
+   APPLICATION
+============================================================ */
+const App = {
+  store:null, mode:null, donnees:null, vue:"accueil",
+  filtreInteractions:"tous", rechercheClient:"", rechercheVehicule:"",
+  editionId:null, formInteraction:{canal:CANAUX[0], interet:3, statut:"en_cours"},
+
+  /* ---------- démarrage ---------- */
+  async demarrer(){
+    const cfg = JSON.parse(localStorage.getItem(CLE_CONFIG)||"null");
+    if(!cfg){ this.montrer("ecran-config"); return; }
+    this.mode = cfg.mode;
+    if(cfg.mode==="demo"){
+      this.store = DemoStore; DemoStore.init();
+      this.montrerAuth();
+    }else{
+      this.store = SupaStore;
+      try{
+        await SupaStore.init(cfg);
+        if(await SupaStore.sessionActive()){ await this.entrer(); }
+        else this.montrerAuth();
+      }catch(e){ alert(e.message); localStorage.removeItem(CLE_CONFIG); this.montrer("ecran-config"); }
+    }
+  },
+  montrer(id){
+    ["ecran-config","ecran-auth","app"].forEach(x=>document.getElementById(x).classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
+  },
+  choisirMode(mode){
+    localStorage.setItem(CLE_CONFIG, JSON.stringify({mode}));
+    this.demarrer();
+  },
+  afficherConfigSupabase(){ document.getElementById("config-supabase").classList.remove("hidden"); },
+  async enregistrerConfigSupabase(){
+    const url=document.getElementById("sb-url").value.trim(), key=document.getElementById("sb-key").value.trim();
+    if(!url||!key){ alert("Renseignez l'URL et la clé."); return; }
+    localStorage.setItem(CLE_CONFIG, JSON.stringify({mode:"supabase",url,key}));
+    this.demarrer();
+  },
+  quitterMode(){ localStorage.removeItem(CLE_CONFIG); this.montrer("ecran-config"); },
+
+  /* ---------- authentification ---------- */
+  montrerAuth(){
+    this.montrer("ecran-auth");
+    const demo = this.mode==="demo";
+    document.getElementById("auth-demo").classList.toggle("hidden",!demo);
+    document.getElementById("auth-supabase").classList.toggle("hidden",demo);
+    if(demo){
+      const zone = document.getElementById("liste-comptes-demo");
+      zone.innerHTML = DemoStore.data.profiles.map(p=>
+        `<div class="item" style="cursor:pointer" onclick="App.connexionDemo('${p.id}')">
+          <div><div class="t">${this.esc(p.nom)}</div><div class="s">${p.role==="employeur"?"Employeur / Gérant":"Vendeur"}</div></div>
+          <div style="color:var(--bleu);font-size:20px">›</div></div>`).join("");
+    }
+  },
+  basculerInscription(oui){
+    document.getElementById("form-connexion").classList.toggle("hidden",oui);
+    document.getElementById("form-inscription").classList.toggle("hidden",!oui);
+  },
+  async connexionDemo(id){ DemoStore.userId=id; await this.entrer(); },
+  async connexion(){
+    try{
+      await SupaStore.connexion(document.getElementById("co-email").value.trim(), document.getElementById("co-mdp").value);
+      await this.entrer();
+    }catch(e){ alert(e.message); }
+  },
+  async inscription(){
+    const nom=document.getElementById("ins-nom").value.trim(), email=document.getElementById("ins-email").value.trim(),
+          mdp=document.getElementById("ins-mdp").value, role=document.getElementById("ins-role").value;
+    if(!nom||!email||mdp.length<6){ alert("Complétez tous les champs (mot de passe : 6 caractères minimum)."); return; }
+    try{
+      await SupaStore.inscription(nom,email,mdp,role);
+      if(SupaStore.profil) await this.entrer();
+      else alert("Compte créé. Si la confirmation par email est activée dans Supabase, validez l'email puis connectez-vous.");
+    }catch(e){ alert(e.message); }
+  },
+  async deconnexion(){
+    if(this.mode==="supabase") await SupaStore.deconnexion();
+    else DemoStore.userId=null;
+    this.montrerAuth();
+  },
+
+  /* ---------- entrée dans l'app ---------- */
+  get user(){ return this.store.utilisateur(); },
+  get estPatron(){ return this.user && this.user.role==="employeur"; },
+  async entrer(){
+    try{ this.donnees = await this.store.chargerTout(); }
+    catch(e){ alert(e.message); return; }
+    this.montrer("app");
+    document.getElementById("entete-user").textContent =
+      this.user.nom + " · " + (this.estPatron?"Employeur":"Vendeur") + (this.mode==="demo"?" · DÉMO":"");
+    this.construireNav();
+    this.allerVue(this.estPatron?"stats":"accueil");
+  },
+  async recharger(){ this.donnees = await this.store.chargerTout(); this.rendre(); },
+
+  construireNav(){
+    const onglets = [
+      {id:"accueil", ico:"🏠", lab:"Accueil"},
+      {id:"interactions", ico:"💬", lab:"Échanges"},
+      {id:"clients", ico:"👤", lab:"Clients"},
+      {id:"vehicules", ico:"🚗", lab:"Parc"},
+      {id:"stats", ico:"📊", lab:"Stats"}
+    ];
+    document.getElementById("navbar").innerHTML = onglets.map(o=>
+      `<button id="nav-${o.id}" onclick="App.allerVue('${o.id}')"><span class="ico">${o.ico}</span>${o.lab}</button>`).join("");
+  },
+  allerVue(vue){
+    this.vue=vue;
+    document.querySelectorAll("nav button").forEach(b=>b.classList.remove("actif"));
+    const btn=document.getElementById("nav-"+vue); if(btn) btn.classList.add("actif");
+    this.rendre();
+  },
+
+  /* ---------- utilitaires ---------- */
+  esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); },
+  nomProfil(id){ const p=this.donnees.profiles.find(x=>x.id===id); return p?p.nom:"?"; },
+  nomClient(id){ const c=this.donnees.clients.find(x=>x.id===id); return c?c.nom:"Client supprimé"; },
+  nomVehicule(id){ const v=this.donnees.vehicules.find(x=>x.id===id); return v?(v.marque+" "+v.modele):"Véhicule supprimé"; },
+  fmtDate(iso){
+    const d=new Date(iso);
+    return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  },
+  etoilesTxt(n){ return "★".repeat(n)+"☆".repeat(5-n); },
+  mesInteractions(){
+    const liste=this.donnees.interactions.slice().sort((a,b)=>new Date(b.date_interaction)-new Date(a.date_interaction));
+    return this.estPatron ? liste : liste.filter(i=>i.vendeur_id===this.user.id);
+  },
+
+  /* ---------- rendu des vues ---------- */
+  rendre(){
+    const titres={accueil:"Accueil",interactions:"Échanges clients",clients:"Clients",vehicules:"Parc véhicules",stats:"Statistiques"};
+    document.getElementById("titre-vue").textContent = titres[this.vue];
+    document.getElementById("fab").classList.toggle("hidden", this.vue==="stats");
+    const c=document.getElementById("contenu");
+    if(this.vue==="accueil") c.innerHTML=this.vueAccueil();
+    if(this.vue==="interactions") c.innerHTML=this.vueInteractions();
+    if(this.vue==="clients") c.innerHTML=this.vueClients();
+    if(this.vue==="vehicules") c.innerHTML=this.vueVehicules();
+    if(this.vue==="stats") c.innerHTML=this.vueStats();
+  },
+
+  vueAccueil(){
+    const ints=this.mesInteractions();
+    const semaine=ints.filter(i=>Date.now()-new Date(i.date_interaction)<7*864e5);
+    const ventes=ints.filter(i=>i.statut==="vendu").length;
+    const enCours=ints.filter(i=>i.statut==="en_cours").length;
+    const recentes=ints.slice(0,5);
+    return `
+      <div class="kpis">
+        <div class="kpi"><div class="v">${semaine.length}</div><div class="l">échanges / 7 j</div></div>
+        <div class="kpi"><div class="v">${enCours}</div><div class="l">en cours</div></div>
+        <div class="kpi"><div class="v">${ventes}</div><div class="l">ventes</div></div>
+      </div>
+      <div class="carte">
+        <button class="btn" onclick="App.ouvrirFormInteraction()">＋ Enregistrer un échange client</button>
+      </div>
+      <h3 class="section">Derniers échanges</h3>
+      <div class="carte">${recentes.length? recentes.map(i=>this.ligneInteraction(i)).join("") : '<div class="vide">Aucun échange enregistré pour le moment.</div>'}</div>`;
+  },
+
+  ligneInteraction(i){
+    return `<div class="item" style="cursor:pointer" onclick="App.ouvrirFormInteraction('${i.id}')">
+      <div>
+        <div class="t">${this.esc(this.nomClient(i.client_id))}</div>
+        <div class="s">${this.esc(this.nomVehicule(i.vehicule_id))} · ${this.esc(i.canal)}${this.estPatron?" · "+this.esc(this.nomProfil(i.vendeur_id)):""}</div>
+        <div class="mini-etoiles">${this.etoilesTxt(i.interet)}</div>
+      </div>
+      <div class="droite">
+        <span class="badge b-${i.statut}">${STATUTS[i.statut]}</span>
+        <div class="s">${this.fmtDate(i.date_interaction)}</div>
+      </div></div>`;
+  },
+
+  vueInteractions(){
+    let ints=this.mesInteractions();
+    const f=this.filtreInteractions;
+    if(f!=="tous") ints=ints.filter(i=>i.statut===f);
+    const chips=[["tous","Tous"],["en_cours","En cours"],["vendu","Vendus"],["perdu","Perdus"]].map(([v,l])=>
+      `<button class="chip ${f===v?"actif":""}" onclick="App.filtreInteractions='${v}';App.rendre()">${l}</button>`).join("");
+    return `<div class="filtres">${chips}</div>
+      <div class="carte">${ints.length? ints.map(i=>this.ligneInteraction(i)).join("") : '<div class="vide">Aucun échange dans cette catégorie.</div>'}</div>`;
+  },
+
+  vueClients(){
+    const r=this.rechercheClient.toLowerCase();
+    const clients=this.donnees.clients.filter(c=>c.nom.toLowerCase().includes(r)).sort((a,b)=>a.nom.localeCompare(b.nom));
+    return `<div class="recherche"><input placeholder="🔍 Rechercher un client…" value="${this.esc(this.rechercheClient)}"
+        oninput="App.rechercheClient=this.value;App.rendreListeSeule('liste-clients',App.htmlListeClients())"></div>
+      <div class="carte"><button class="btn" onclick="App.ouvrirFormClient()">＋ Nouveau client</button></div>
+      <div class="carte" id="liste-clients">${this.htmlListeClients()}</div>`;
+  },
+  htmlListeClients(){
+    const r=this.rechercheClient.toLowerCase();
+    const clients=this.donnees.clients.filter(c=>c.nom.toLowerCase().includes(r)).sort((a,b)=>a.nom.localeCompare(b.nom));
+    if(!clients.length) return '<div class="vide">Aucun client.</div>';
+    return clients.map(c=>{
+      const nb=this.donnees.interactions.filter(i=>i.client_id===c.id).length;
+      return `<div class="item" style="cursor:pointer" onclick="App.ouvrirFormClient(false,'${c.id}')">
+        <div><div class="t">${this.esc(c.nom)}</div><div class="s">${this.esc(c.telephone||c.email||"—")}</div></div>
+        <div class="droite"><div class="s">${nb} échange${nb>1?"s":""}</div></div></div>`;
+    }).join("");
+  },
+  rendreListeSeule(id,html){ document.getElementById(id).innerHTML=html; },
+
+  vueVehicules(){
+    const r=this.rechercheVehicule.toLowerCase();
+    return `<div class="recherche"><input placeholder="🔍 Rechercher un véhicule…" value="${this.esc(this.rechercheVehicule)}"
+        oninput="App.rechercheVehicule=this.value;App.rendreListeSeule('liste-vehicules',App.htmlListeVehicules())"></div>
+      <div class="carte"><button class="btn" onclick="App.ouvrirFormVehicule()">＋ Nouveau véhicule</button></div>
+      <div class="carte" id="liste-vehicules">${this.htmlListeVehicules()}</div>`;
+  },
+  htmlListeVehicules(){
+    const r=this.rechercheVehicule.toLowerCase();
+    const vs=this.donnees.vehicules.filter(v=>(v.marque+" "+v.modele).toLowerCase().includes(r))
+      .sort((a,b)=>(a.statut>b.statut?1:-1));
+    if(!vs.length) return '<div class="vide">Aucun véhicule.</div>';
+    return vs.map(v=>`<div class="item" style="cursor:pointer" onclick="App.ouvrirFormVehicule(false,'${v.id}')">
+      <div><div class="t">${this.esc(v.marque)} ${this.esc(v.modele)}</div>
+      <div class="s">${v.annee||""} ${v.prix? "· "+Number(v.prix).toLocaleString("fr-FR")+" €":""} ${v.immat? "· "+this.esc(v.immat):""}</div></div>
+      <div class="droite"><span class="badge ${v.statut==="vendu"?"b-vendu":"b-stock"}">${v.statut==="vendu"?"Vendu":"En stock"}</span></div></div>`).join("");
+  },
+
+  vueStats(){
+    const ints=this.donnees.interactions;
+    const vendeurs=this.donnees.profiles.filter(p=>p.role==="vendeur");
+    const cible = this.estPatron ? vendeurs : [this.user];
+    const global = this.estPatron ? ints : ints.filter(i=>i.vendeur_id===this.user.id);
+    const ventes=global.filter(i=>i.statut==="vendu").length;
+    const clientsUniques=new Set(global.map(i=>i.client_id)).size;
+    const taux= clientsUniques? Math.round(100*ventes/clientsUniques):0;
+
+    // par vendeur
+    const blocsVendeurs = cible.map(v=>{
+      const mi=ints.filter(i=>i.vendeur_id===v.id);
+      const cu=new Set(mi.map(i=>i.client_id)).size;
+      const vt=mi.filter(i=>i.statut==="vendu").length;
+      const pd=mi.filter(i=>i.statut==="perdu").length;
+      const tx=cu? Math.round(100*vt/cu):0;
+      const im=mi.length? (mi.reduce((s,i)=>s+i.interet,0)/mi.length).toFixed(1):"—";
+      return `<div class="carte">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>${this.esc(v.nom)}</strong><span class="badge b-stock">${tx}% de conversion</span></div>
+        <div class="barre-ligne"><div class="lab"><span>Taux de vente (clients → ventes)</span><span>${vt}/${cu}</span></div>
+          <div class="barre"><div style="width:${tx}%"></div></div></div>
+        <div class="s" style="font-size:13px;color:var(--gris)">
+          ${mi.length} échange${mi.length>1?"s":""} · ${cu} client${cu>1?"s":""} · ${vt} vente${vt>1?"s":""} · ${pd} perdu${pd>1?"s":""} · intérêt moyen ${im}/5</div>
+      </div>`;
+    }).join("") || '<div class="carte"><div class="vide">Aucun vendeur.</div></div>';
+
+    // répartition par canal
+    const parCanal = CANAUX.map(c=>{
+      const n=global.filter(i=>i.canal===c).length;
+      return {c,n};
+    }).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+    const maxCanal = Math.max(1,...parCanal.map(x=>x.n));
+    const blocCanaux = parCanal.length? `<div class="carte">${parCanal.map(x=>
+      `<div class="barre-ligne"><div class="lab"><span>${this.esc(x.c)}</span><span>${x.n}</span></div>
+       <div class="barre"><div style="width:${Math.round(100*x.n/maxCanal)}%"></div></div></div>`).join("")}</div>`
+      : '<div class="carte"><div class="vide">Pas encore de données.</div></div>';
+
+    return `
+      <div class="kpis">
+        <div class="kpi"><div class="v">${global.length}</div><div class="l">échanges</div></div>
+        <div class="kpi"><div class="v">${ventes}</div><div class="l">ventes</div></div>
+        <div class="kpi"><div class="v">${taux}%</div><div class="l">conversion</div></div>
+      </div>
+      <h3 class="section">${this.estPatron?"Performance par vendeur":"Ma performance"}</h3>
+      ${blocsVendeurs}
+      <h3 class="section">Provenance des contacts</h3>
+      ${blocCanaux}
+      <p class="note-info">Conversion = ventes ÷ clients distincts contactés. Un client compté une seule fois même après plusieurs échanges.</p>`;
+  },
+
+  /* ---------- modals : interaction ---------- */
+  fermerModal(id){ document.getElementById(id).classList.add("hidden"); },
+  ouvrirFormInteraction(id){
+    this.editionId = id||null;
+    const i = id ? this.donnees.interactions.find(x=>x.id===id) : null;
+    if(i && !this.estPatron && i.vendeur_id!==this.user.id){ alert("Cet échange appartient à un autre vendeur."); return; }
+    this.formInteraction = i ? {canal:i.canal, interet:i.interet, statut:i.statut}
+                             : {canal:CANAUX[0], interet:3, statut:"en_cours"};
+    document.getElementById("mi-titre").textContent = i? "Modifier l'échange" : "Nouvelle interaction";
+    document.getElementById("mi-supprimer").classList.toggle("hidden", !i);
+    // clients / véhicules
+    const selC=document.getElementById("mi-client");
+    selC.innerHTML = '<option value="">— Choisir un client —</option>'+
+      this.donnees.clients.slice().sort((a,b)=>a.nom.localeCompare(b.nom))
+        .map(c=>`<option value="${c.id}">${this.esc(c.nom)}</option>`).join("");
+    selC.value = i? (i.client_id||"") : "";
+    const selV=document.getElementById("mi-vehicule");
+    selV.innerHTML = '<option value="">— Choisir un véhicule —</option>'+
+      this.donnees.vehicules.slice().sort((a,b)=>(a.marque+a.modele).localeCompare(b.marque+b.modele))
+        .map(v=>`<option value="${v.id}">${this.esc(v.marque+" "+v.modele)}${v.statut==="vendu"?" (vendu)":""}</option>`).join("");
+    selV.value = i? (i.vehicule_id||"") : "";
+    // date : maintenant par défaut, modifiable
+    const d = i? new Date(i.date_interaction) : new Date();
+    d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
+    document.getElementById("mi-date").value = d.toISOString().slice(0,16);
+    document.getElementById("mi-commentaire").value = i? (i.commentaire||"") : "";
+    this.rendreChipsInteraction();
+    document.getElementById("modal-interaction").classList.remove("hidden");
+  },
+  rendreChipsInteraction(){
+    const f=this.formInteraction;
+    document.getElementById("mi-canaux").innerHTML = CANAUX.map(c=>
+      `<button class="chip ${f.canal===c?"actif":""}" onclick="App.formInteraction.canal='${c}';App.rendreChipsInteraction()">${c}</button>`).join("");
+    document.getElementById("mi-etoiles").innerHTML = [1,2,3,4,5].map(n=>
+      `<button class="${f.interet>=n?"actif":""}" onclick="App.formInteraction.interet=${n};App.rendreChipsInteraction()">★</button>`).join("");
+    document.getElementById("mi-statuts").innerHTML = Object.entries(STATUTS).map(([v,l])=>
+      `<button class="chip ${f.statut===v?"actif":""}" onclick="App.formInteraction.statut='${v}';App.rendreChipsInteraction()">${l}</button>`).join("");
+  },
+  async sauverInteraction(){
+    const clientId=document.getElementById("mi-client").value;
+    const vehiculeId=document.getElementById("mi-vehicule").value;
+    const dateVal=document.getElementById("mi-date").value;
+    if(!clientId){ alert("Choisissez un client (ou créez-le avec ＋)."); return; }
+    if(!vehiculeId){ alert("Choisissez un véhicule (ou créez-le avec ＋)."); return; }
+    if(!dateVal){ alert("Indiquez la date de l'échange."); return; }
+    const obj={
+      client_id:clientId, vehicule_id:vehiculeId,
+      canal:this.formInteraction.canal, interet:this.formInteraction.interet,
+      statut:this.formInteraction.statut,
+      commentaire:document.getElementById("mi-commentaire").value.trim(),
+      date_interaction:new Date(dateVal).toISOString()
+    };
+    try{
+      if(this.editionId){ await this.store.modifier("interactions", this.editionId, obj); }
+      else{ obj.vendeur_id=this.user.id; await this.store.creer("interactions", obj); }
+      // proposer de marquer le véhicule vendu
+      if(obj.statut==="vendu"){
+        const v=this.donnees.vehicules.find(x=>x.id===vehiculeId);
+        if(v && v.statut!=="vendu" && confirm("Marquer aussi le véhicule « "+v.marque+" "+v.modele+" » comme vendu dans le parc ?")){
+          await this.store.modifier("vehicules", vehiculeId, {statut:"vendu"});
+        }
+      }
+      this.fermerModal("modal-interaction");
+      await this.recharger();
+    }catch(e){ alert(e.message); }
+  },
+  async supprimerInteraction(){
+    if(!this.editionId || !confirm("Supprimer définitivement cet échange ?")) return;
+    try{ await this.store.supprimer("interactions", this.editionId);
+      this.fermerModal("modal-interaction"); await this.recharger();
+    }catch(e){ alert(e.message); }
+  },
+
+  /* ---------- modals : client ---------- */
+  clientDepuisInteraction:false, clientEditionId:null,
+  ouvrirFormClient(depuisInteraction, id){
+    this.clientDepuisInteraction=!!depuisInteraction;
+    this.clientEditionId=id||null;
+    const c = id? this.donnees.clients.find(x=>x.id===id) : null;
+    document.getElementById("mc-titre").textContent = c? "Modifier le client" : "Nouveau client";
+    document.getElementById("mc-nom").value = c? c.nom:"";
+    document.getElementById("mc-tel").value = c? (c.telephone||""):"";
+    document.getElementById("mc-email").value = c? (c.email||""):"";
+    document.getElementById("mc-notes").value = c? (c.notes||""):"";
+    document.getElementById("modal-client").classList.remove("hidden");
+  },
+  async sauverClient(){
+    const nom=document.getElementById("mc-nom").value.trim();
+    if(!nom){ alert("Le nom est obligatoire."); return; }
+    const obj={nom, telephone:document.getElementById("mc-tel").value.trim(),
+      email:document.getElementById("mc-email").value.trim(), notes:document.getElementById("mc-notes").value.trim()};
+    try{
+      let cree;
+      if(this.clientEditionId) cree=await this.store.modifier("clients", this.clientEditionId, obj);
+      else cree=await this.store.creer("clients", obj);
+      this.fermerModal("modal-client");
+      this.donnees = await this.store.chargerTout();
+      if(this.clientDepuisInteraction){
+        // ré-alimenter le select sans fermer la modal interaction
+        const sel=document.getElementById("mi-client");
+        sel.innerHTML = '<option value="">— Choisir un client —</option>'+
+          this.donnees.clients.slice().sort((a,b)=>a.nom.localeCompare(b.nom))
+            .map(x=>`<option value="${x.id}">${this.esc(x.nom)}</option>`).join("");
+        sel.value=cree.id;
+      }else this.rendre();
+    }catch(e){ alert(e.message); }
+  },
+
+  /* ---------- modals : véhicule ---------- */
+  vehiculeDepuisInteraction:false, vehiculeEditionId:null,
+  ouvrirFormVehicule(depuisInteraction, id){
+    this.vehiculeDepuisInteraction=!!depuisInteraction;
+    this.vehiculeEditionId=id||null;
+    const v = id? this.donnees.vehicules.find(x=>x.id===id) : null;
+    document.getElementById("mv-titre").textContent = v? "Modifier le véhicule" : "Nouveau véhicule";
+    document.getElementById("mv-marque").value = v? v.marque:"";
+    document.getElementById("mv-modele").value = v? v.modele:"";
+    document.getElementById("mv-annee").value = v? (v.annee||""):"";
+    document.getElementById("mv-prix").value = v? (v.prix||""):"";
+    document.getElementById("mv-immat").value = v? (v.immat||""):"";
+    document.getElementById("mv-statut").value = v? v.statut:"stock";
+    document.getElementById("modal-vehicule").classList.remove("hidden");
+  },
+  async sauverVehicule(){
+    const marque=document.getElementById("mv-marque").value.trim(), modele=document.getElementById("mv-modele").value.trim();
+    if(!marque||!modele){ alert("Marque et modèle sont obligatoires."); return; }
+    const obj={marque, modele,
+      annee:parseInt(document.getElementById("mv-annee").value)||null,
+      prix:parseFloat(document.getElementById("mv-prix").value)||null,
+      immat:document.getElementById("mv-immat").value.trim(),
+      statut:document.getElementById("mv-statut").value};
+    try{
+      let cree;
+      if(this.vehiculeEditionId) cree=await this.store.modifier("vehicules", this.vehiculeEditionId, obj);
+      else cree=await this.store.creer("vehicules", obj);
+      this.fermerModal("modal-vehicule");
+      this.donnees = await this.store.chargerTout();
+      if(this.vehiculeDepuisInteraction){
+        const sel=document.getElementById("mi-vehicule");
+        sel.innerHTML = '<option value="">— Choisir un véhicule —</option>'+
+          this.donnees.vehicules.slice().sort((a,b)=>(a.marque+a.modele).localeCompare(b.marque+b.modele))
+            .map(x=>`<option value="${x.id}">${this.esc(x.marque+" "+x.modele)}${x.statut==="vendu"?" (vendu)":""}</option>`).join("");
+        sel.value=cree.id;
+      }else this.rendre();
+    }catch(e){ alert(e.message); }
+  }
+};
+
+App.demarrer();
+</script>
+</body>
+</html>
